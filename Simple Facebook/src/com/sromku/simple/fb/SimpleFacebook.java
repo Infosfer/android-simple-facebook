@@ -1816,8 +1816,10 @@ public class SimpleFacebook
 		task.execute();
 	}
 
-	private void openInviteDialog(Activity activity, Bundle params, final OnInviteListener onInviteListener)
+	public void openInviteDialog(final Activity activity, final Bundle params, final OnInviteListener onInviteListener)
 	{
+		mActivity.runOnUiThread(new Runnable(){ @Override
+			public void run() { 
 		mDialog = new WebDialog.RequestsDialogBuilder(activity, Session.getActiveSession(), params).
 			setOnCompleteListener(new WebDialog.OnCompleteListener()
 			{
@@ -1863,6 +1865,8 @@ public class SimpleFacebook
 		dialogWindow.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
 		mDialog.show();
+		
+		}});
 	}
 
 	/**
