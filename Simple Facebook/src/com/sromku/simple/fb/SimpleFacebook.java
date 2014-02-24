@@ -194,7 +194,57 @@ public class SimpleFacebook
 			}
 		}
 	}
+	
+	public void graphRequest(final Bundle parameters, final String graphPath, final String httpMethod, final OnGraphRequestListener onGraphRequestListener) {
+		if (isLogin())
+		{
+			final Request request = new Request(getOpenSession(), graphPath, parameters, HttpMethod.valueOf(httpMethod), new Request.Callback()
+			{
+				@Override
+				public void onCompleted(Response response)
+				{
+					FacebookRequestError error = response.getError();
+					if (error != null)
+					{
+						// log
+						logError("Failed to issue graph request", error.getException());
 
+						// callback with 'exception'
+						if (onGraphRequestListener != null)
+						{
+							onGraphRequestListener.onFail(error.getCategory().toString(), (error.shouldNotifyUser()) ? mActivity.getResources().getString(error.getUserActionMessageId()) : null);
+						}
+					}
+					else
+					{
+						// callback with 'complete'
+						if (onGraphRequestListener != null)
+						{
+							JSONObject jsonResponse = response.getGraphObject().getInnerJSONObject();
+							onGraphRequestListener.onComplete(jsonResponse);
+						}
+					}
+				}
+			});
+
+
+			
+			mActivity.runOnUiThread(new Runnable(){ @Override
+				public void run() { RequestAsyncTask task = new RequestAsyncTask(request); task.execute(); }});			
+		}
+		else
+		{
+			String reason = Errors.getError(ErrorMsg.LOGIN);
+			logError(reason, null);
+
+			// callback with 'fail' due to not being logged in
+			if (onGraphRequestListener != null)
+			{
+				onGraphRequestListener.onFail(FacebookRequestError.Category.AUTHENTICATION_REOPEN_SESSION.toString(), null);
+			}
+		}
+	}
+	
 	/**
 	 * Get my profile from facebook.<br>
 	 * This method will return profile with next default properties depends on permissions you have:<br>
@@ -2122,6 +2172,12 @@ public class SimpleFacebook
 		void onNotAcceptingPermissions();
 	}
 
+	public interface OnGraphRequestListener
+	{
+		void onComplete(JSONObject jsonResponse);
+		void onFail(String category, String userMessage);
+	}
+	
 	/**
 	 * On my profile request listener
 	 * 
