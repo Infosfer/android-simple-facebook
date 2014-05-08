@@ -39,6 +39,7 @@ import com.sromku.simple.fb.entities.Video;
 import com.sromku.simple.fb.utils.Errors;
 import com.sromku.simple.fb.utils.Errors.ErrorMsg;
 import com.sromku.simple.fb.utils.Logger;
+import com.facebook.Settings;
 
 /**
  * Simple Facebook SDK which wraps original Facebook SDK 3.5
@@ -77,6 +78,8 @@ public class SimpleFacebook
 	private SimpleFacebook()
 	{
 		mSessionStatusCallback = new SessionStatusCallback();
+
+		Settings.setPlatformCompatibilityEnabled(true);
 	}
 
 	public static void initialize(Activity activity)
