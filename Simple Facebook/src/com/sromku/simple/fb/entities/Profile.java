@@ -443,7 +443,7 @@ public class Profile
 	 */
 	public Location getLocation()
 	{
-		GraphLocation graphLocation = mGraphUser.getLocation();
+		GraphLocation graphLocation = mGraphUser.getLocation().getLocation();
 		if (graphLocation != null)
 		{
 			Location location = Location.create(graphLocation);
