@@ -9,6 +9,10 @@ import com.facebook.internal.SessionAuthorizationType;
  */
 public enum Permissions
 {
+	PUBLIC_PROFILE("public_profile", Type.READ),
+
+	USER_FRIENDS("user_friends", Type.READ),
+
 	BASIC_INFO("basic_info", Type.READ),
 	
 	USER_ABOUT_ME("user_about_me", Type.READ),
