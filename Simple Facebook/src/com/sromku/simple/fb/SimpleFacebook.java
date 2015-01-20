@@ -79,7 +79,7 @@ public class SimpleFacebook
 	{
 		mSessionStatusCallback = new SessionStatusCallback();
 
-		Settings.setPlatformCompatibilityEnabled(true);
+		Settings.setPlatformCompatibilityEnabled(false);
 	}
 
 	public static void initialize(Activity activity)
