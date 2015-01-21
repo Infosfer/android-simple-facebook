@@ -1982,6 +1982,134 @@ public class SimpleFacebook
 		session.requestNewPublishPermissions(request);
 	}
 
+	public void requestNewPermissions(final List<String> readPermissions, final OnPermissionListener onPermissionListener) {
+		Session session = Session.getActiveSession();
+		session.addCallback(mSessionStatusCallback);
+
+		mSessionStatusCallback.mOnNewReadPermissionListener = new OnNewReadPermissionListener()
+		{
+			@Override
+			public void onSuccess(List<String> permissions)
+			{
+				boolean isPermissionsGranted = true;
+				for (int i = 0; i < readPermissions.size(); i++) 
+				{
+					String askedPermission = readPermissions.get(i);
+
+					if (!permissions.contains(askedPermission)) 
+					{
+						isPermissionsGranted = false;
+					}
+				}
+
+				if (isPermissionsGranted && onPermissionListener != null) 
+				{
+					onPermissionListener.onSuccess(getAccessToken());
+				}
+				else if(onPermissionListener != null)
+				{
+					onPermissionListener.onNotAcceptingPermissions();
+				}
+			}
+
+			@Override
+			public void onNotAcceptingPermissions()
+			{
+				if (onPermissionListener != null)
+				{
+					onPermissionListener.onNotAcceptingPermissions();
+				}
+			}
+		};
+
+		// Check permissions first
+		final Request request = new Request(getOpenSession(), "me/permissions", null, HttpMethod.GET, new Request.Callback()
+		{
+			@Override
+			public void onCompleted(Response response)
+			{
+				FacebookRequestError error = response.getError();
+				if (error != null)
+				{
+					// Error
+					extendReadPermissions(readPermissions);
+				}
+				else
+				{
+					GraphObject graphObject = response.getGraphObject();
+					if (graphObject != null)
+					{
+						JSONObject graphResponse = graphObject.getInnerJSONObject();
+						try
+						{
+							JSONArray result = graphResponse.getJSONArray("data");
+
+							boolean isPermissionsAlreadyGranted = true;
+							
+							for (int i = 0; i < readPermissions.size(); i++) {
+								String askedPermission = readPermissions.get(i);
+
+								for (int j = 0; j < result.length(); j++) {
+									String permissionName = result.getJSONObject(j).getString("permission");
+									String permissionStatus = result.getJSONObject(j).getString("status");
+
+									if (askedPermission.equals(permissionName) && permissionStatus.equals("declined"))
+									{
+										isPermissionsAlreadyGranted = false;
+										break;
+									}
+								}
+
+								if (!isPermissionsAlreadyGranted) 
+								{
+									break;
+							  	}
+							}
+
+							if (isPermissionsAlreadyGranted) 
+							{
+								if (onPermissionListener != null)
+								{
+									onPermissionListener.onSuccess(getAccessToken());
+								}
+
+							  	mSessionStatusCallback.mOnNewReadPermissionListener = null;
+							  	return;
+							}
+
+							extendReadPermissions(readPermissions);
+						}
+						catch (JSONException e)
+						{
+							extendReadPermissions(readPermissions);
+						}
+					}
+					else
+					{
+						// Error
+						extendReadPermissions(readPermissions);
+					}
+				}
+			}
+		});
+
+		mActivity.runOnUiThread(new Runnable(){ @Override
+			public void run() { RequestAsyncTask task = new RequestAsyncTask(request); task.execute(); }});
+	}
+
+	/**
+	 * Extend and ask user for READ permissions
+	 * 
+	 * @param activity
+	 */
+	private static void extendReadPermissions(List<String> readPermissions)
+	{
+		Session session = Session.getActiveSession();
+
+		Session.NewPermissionsRequest request = new Session.NewPermissionsRequest(mActivity, readPermissions);
+		session.requestNewReadPermissions(request);
+	}
+
 	/**
 	 * Helper method
 	 */
@@ -2009,6 +2137,8 @@ public class SimpleFacebook
 		OnLoginListener mOnLoginListener = null;
 		OnLogoutListener mOnLogoutListener = null;
 		OnReopenSessionListener mOnReopenSessionListener = null;
+		OnNewReadPermissionListener mOnNewReadPermissionListener = null;
+
 
 		@Override
 		public void call(Session session, SessionState state, Exception exception)
@@ -2128,6 +2258,11 @@ public class SimpleFacebook
 					mOnReopenSessionListener.onSuccess();
 					mOnReopenSessionListener = null;
 				}
+				else if (mOnNewReadPermissionListener != null)
+				{
+					mOnNewReadPermissionListener.onSuccess(permissions);
+					mOnNewReadPermissionListener = null;
+				}
 				else if (mDoOnLogin)
 				{
 					mDoOnLogin = false;
@@ -2175,6 +2310,13 @@ public class SimpleFacebook
 	private interface OnReopenSessionListener
 	{
 		void onSuccess();
+
+		void onNotAcceptingPermissions();
+	}
+
+	private interface OnNewReadPermissionListener
+	{
+		void onSuccess(List<String> permissions);
 
 		void onNotAcceptingPermissions();
 	}
